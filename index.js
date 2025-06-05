@@ -62,7 +62,6 @@ async function run() {
         const article = await articlesCollection.findOne({
           _id: new ObjectId(id),
         });
-    
 
         if (!article) {
           return res.status(404).send({ message: "Article not found" });
@@ -74,8 +73,35 @@ async function run() {
         res.status(500).send({ message: "Failed to fetch article" });
       }
     });
+    app.patch("/articles/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedData = req.body;
 
-    
+      try {
+        const result = await articlesCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedData }
+        );
+        res.send(result);
+      } catch (err) {
+        console.error("Failed to update article", err);
+        res.status(500).send({ message: "Update failed" });
+      }
+    });
+    app.delete("/articles/:id", async (req, res) => {
+      const { id } = req.params;
+
+      try {
+        const result = await articlesCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.send(result);
+      } catch (err) {
+        console.error("Failed to delete article", err);
+        res.status(500).send({ message: "Deletion failed" });
+      }
+    });
+
     // handle like toggle start here
     app.patch("/like/:articleId", async (req, res) => {
       const id = req.params.articleId;
