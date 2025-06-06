@@ -5,6 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
 
+// middleware
 app.use(cors());
 app.use(express.json());
 
@@ -43,18 +44,32 @@ async function run() {
         res.status(500).send({ message: "Failed to save article" });
       }
     });
+
+    // category filter
     app.get("/articles", async (req, res) => {
       try {
-        const articles = await articlesCollection
-          .find()
-          .sort({ created_at: -1 })
-          .toArray();
+        const { category } = req.query;
+        console.log("Received category:", category);
+
+        let query = {};
+
+        if (category) {
+          const escapedCategory = category.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+          );
+          query.category = { $regex: new RegExp(`^${escapedCategory}$`, "i") };
+        }
+
+        const articles = await articlesCollection.find(query).toArray();
+        console.log("Articles found:", articles.length);
         res.status(200).send(articles);
       } catch (error) {
         console.error("Error fetching articles:", error);
         res.status(500).send({ message: "Failed to fetch articles" });
       }
     });
+
     // Get single article by ID
     app.get("/articles/:id", async (req, res) => {
       try {
