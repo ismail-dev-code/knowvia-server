@@ -36,7 +36,7 @@ async function run() {
     app.post("/articles", async (req, res) => {
       try {
         const article = req.body;
-        console.log(article);
+      
         const result = await articlesCollection.insertOne(article);
         res.status(201).send(result);
       } catch (error) {
@@ -49,7 +49,7 @@ async function run() {
     app.get("/articles", async (req, res) => {
       try {
         const { category } = req.query;
-        console.log("Received category:", category);
+        // console.log("Received category:", category);
 
         let query = {};
 
@@ -165,7 +165,7 @@ async function run() {
 
       try {
         const result = await commentsCollection.insertOne(newComment);
-        console.log(result);
+        // console.log(result);
         res.status(201).send(result);
       } catch (err) {
         console.error("Error saving comment:", err);
