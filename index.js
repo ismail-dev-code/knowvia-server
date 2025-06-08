@@ -36,7 +36,7 @@ async function run() {
     app.post("/articles", async (req, res) => {
       try {
         const article = req.body;
-      
+
         const result = await articlesCollection.insertOne(article);
         res.status(201).send(result);
       } catch (error) {
@@ -49,10 +49,7 @@ async function run() {
     app.get("/articles", async (req, res) => {
       try {
         const { category } = req.query;
-        // console.log("Received category:", category);
-
         let query = {};
-
         if (category) {
           const escapedCategory = category.replace(
             /[.*+?^${}()|[\]\\]/g,
@@ -165,11 +162,29 @@ async function run() {
 
       try {
         const result = await commentsCollection.insertOne(newComment);
-        // console.log(result);
         res.status(201).send(result);
       } catch (err) {
         console.error("Error saving comment:", err);
         res.status(500).send({ message: "Failed to save comment" });
+      }
+    });
+
+    app.get("/comments/recent", async (req, res) => {
+      try {
+        const recentComments = await commentsCollection
+          .find({})
+          .sort({ created_at: -1 })
+          .limit(10)
+          .toArray();
+        const withArticleId = recentComments.map((comment) => ({
+          ...comment,
+          articleId: comment.article_id?.toString(),
+        }));
+
+        res.send(withArticleId);
+      } catch (error) {
+        console.error("Error fetching recent comments:", error);
+        res.status(500).send({ message: "Failed to fetch recent comments" });
       }
     });
 
