@@ -1,12 +1,18 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
 
 // middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://knowvia-bd.web.app"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.pw0rah1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -20,6 +26,25 @@ const client = new MongoClient(uri, {
   },
 });
 
+// JWT middlewares start here
+const verifyJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).send({ message: "Unauthorized Access!" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    req.tokenEmail = decoded.email;
+    next();
+  } catch (err) {
+    console.error("JWT verification failed:", err);
+    return res.status(401).send({ message: "Unauthorized Access!" });
+  }
+};
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -32,8 +57,17 @@ async function run() {
       .db("knowvia_Admin")
       .collection("comments");
 
+    // JWT related APIs start here
+    app.post("/jwt", (req, res) => {
+      const user = { email: req.body.email };
+      const token = jwt.sign(user, process.env.JWT_SECRET_KEY, {
+        expiresIn: "2h",
+      });
+      res.send({ token, message: "JWT Created Successfully!" });
+    });
+
     //  articles related APIs start here
-    app.post("/articles", async (req, res) => {
+    app.post("/articles", verifyJWT, async (req, res) => {
       try {
         const article = req.body;
 
@@ -50,6 +84,7 @@ async function run() {
       try {
         const { category } = req.query;
         let query = {};
+
         if (category) {
           const escapedCategory = category.replace(
             /[.*+?^${}()|[\]\\]/g,
@@ -59,10 +94,23 @@ async function run() {
         }
 
         const articles = await articlesCollection.find(query).toArray();
-        console.log("Articles found:", articles.length);
         res.status(200).send(articles);
       } catch (error) {
         console.error("Error fetching articles:", error);
+        res.status(500).send({ message: "Failed to fetch articles" });
+      }
+    });
+    // my article related APIs
+    app.get("/myArticles", verifyJWT, async (req, res) => {
+      try {
+        const userEmail = req.tokenEmail;
+
+        const query = { userEmail };
+        const articles = await articlesCollection.find(query).toArray();
+
+        res.status(200).send(articles);
+      } catch (error) {
+        console.error("Error fetching user articles:", error);
         res.status(500).send({ message: "Failed to fetch articles" });
       }
     });
@@ -85,7 +133,7 @@ async function run() {
         res.status(500).send({ message: "Failed to fetch article" });
       }
     });
-    app.patch("/articles/:id", async (req, res) => {
+    app.patch("/articles/:id", verifyJWT, async (req, res) => {
       const { id } = req.params;
       const updatedData = req.body;
 
