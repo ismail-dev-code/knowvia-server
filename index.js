@@ -148,7 +148,7 @@ async function run() {
         res.status(500).send({ message: "Update failed" });
       }
     });
-    app.delete("/articles/:id", async (req, res) => {
+    app.delete("/articles/:id",verifyJWT, async (req, res) => {
       const { id } = req.params;
 
       try {
