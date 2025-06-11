@@ -148,7 +148,7 @@ async function run() {
         res.status(500).send({ message: "Update failed" });
       }
     });
-    app.delete("/articles/:id",verifyJWT, async (req, res) => {
+    app.delete("/articles/:id", verifyJWT, async (req, res) => {
       const { id } = req.params;
 
       try {
@@ -259,6 +259,29 @@ async function run() {
         res.status(500).send({ message: "Failed to fetch article" });
       }
     });
+
+    app.get("/notifications/counts", verifyJWT, async (req, res) => {
+      try {
+        const userEmail = req.tokenEmail;
+        const userArticles = await articlesCollection
+          .find({ userEmail })
+          .toArray();
+        const totalLikes = userArticles.reduce((sum, article) => {
+          return sum + (article.likedBy ? article.likedBy.length : 0);
+        }, 0);
+
+        const articleIds = userArticles.map((a) => a._id);
+        const totalComments = await commentsCollection.countDocuments({
+          article_id: { $in: articleIds },
+        });
+
+        res.status(200).send({ totalLikes, totalComments });
+      } catch (error) {
+        console.error("Error fetching notifications counts:", error);
+        res.status(500).send({ message: "Failed to fetch counts" });
+      }
+    });
+
     // comments related APIs end here
 
     // Send a ping to confirm a successful connection
