@@ -48,7 +48,7 @@ const verifyJWT = (req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
 
     const articlesCollection = client
       .db("knowvia_Admin")
@@ -61,7 +61,7 @@ async function run() {
     app.post("/jwt", (req, res) => {
       const user = { email: req.body.email };
       const token = jwt.sign(user, process.env.JWT_SECRET_KEY, {
-        expiresIn: "2h",
+        expiresIn: "1h",
       });
       res.send({ token, message: "JWT Created Successfully!" });
     });
@@ -152,6 +152,9 @@ async function run() {
       const { id } = req.params;
 
       try {
+        await commentsCollection.deleteMany({
+          article_id: new ObjectId(id),
+        });
         const result = await articlesCollection.deleteOne({
           _id: new ObjectId(id),
         });
