@@ -32,7 +32,7 @@
 | Backend     | Node.js, Express.js                           |
 | Database    | MongoDB, MongoDB Atlas                        |
 | Security    | JSON Web Tokens (JWT), dotenv                 |
-| Middleware  | cors, cookie-parser                           |
+| Middleware  | cors                          |
 | Networking  | Axios (used in frontend for HTTP requests)    |
 | Versioning  | Git, GitHub                                   |
 

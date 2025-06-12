@@ -48,7 +48,7 @@ const verifyJWT = (req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const articlesCollection = client
       .db("knowvia_Admin")
@@ -266,22 +266,29 @@ async function run() {
     app.get("/notifications/counts", verifyJWT, async (req, res) => {
       try {
         const userEmail = req.tokenEmail;
-        const userArticles = await articlesCollection
+
+        const likedArticles = await articlesCollection
           .find({ userEmail })
           .toArray();
-        const totalLikes = userArticles.reduce((sum, article) => {
-          return sum + (article.likedBy ? article.likedBy.length : 0);
-        }, 0);
 
-        const articleIds = userArticles.map((a) => a._id);
+        let totalLikes = 0;
+        likedArticles.forEach((article) => {
+          if (Array.isArray(article.likedBy)) {
+            totalLikes += article.likedBy.length;
+          }
+        });
+
+        const articleIds = likedArticles.map((a) => a._id);
         const totalComments = await commentsCollection.countDocuments({
           article_id: { $in: articleIds },
         });
 
-        res.status(200).send({ totalLikes, totalComments });
+        res.send({ totalLikes, totalComments });
       } catch (error) {
-        console.error("Error fetching notifications counts:", error);
-        res.status(500).send({ message: "Failed to fetch counts" });
+        console.error("Error fetching notification counts:", error);
+        res
+          .status(500)
+          .send({ message: "Failed to fetch notification counts" });
       }
     });
 
