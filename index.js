@@ -209,6 +209,7 @@ async function run() {
         user_photo: comment.user_photo,
         comment: comment.comment,
         created_at: new Date(),
+        parent_id: comment.parent_id ? new ObjectId(comment.parent_id) : null,
       };
 
       try {
@@ -243,20 +244,29 @@ async function run() {
       try {
         const id = req.params.articleId;
 
-        const article = await articlesCollection.findOne({
-          _id: new ObjectId(id),
-        });
-
-        if (!article) {
-          return res.status(404).send({ message: "Article not found" });
-        }
-
-        const comments = await commentsCollection
+        const allComments = await commentsCollection
           .find({ article_id: new ObjectId(id) })
-          .sort({ created_at: -1 })
+          .sort({ created_at: 1 })
           .toArray();
 
-        res.send(comments);
+        const commentMap = {};
+        const rootComments = [];
+
+        allComments.forEach((comment) => {
+          comment.replies = [];
+          commentMap[comment._id] = comment;
+
+          if (comment.parent_id) {
+            const parent = commentMap[comment.parent_id.toString()];
+            if (parent) {
+              parent.replies.push(comment);
+            }
+          } else {
+            rootComments.push(comment);
+          }
+        });
+
+        res.send(rootComments);
       } catch (error) {
         console.error("Error fetching article with comments:", error);
         res.status(500).send({ message: "Failed to fetch article" });
